@@ -1,0 +1,60 @@
+{
+  "name": "@pushizo/react",
+  "version": "0.1.0",
+  "description": "Pushizo React bağlamaları: PushizoProvider, usePushizo ve izin/abonelik durum hook'ları (@pushizo/web üzerine)",
+  "license": "MIT",
+  "homepage": "https://docs.pushizo.com/docs/integrations/react",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pushizo/pushizo-react.git"
+  },
+  "bugs": {
+    "url": "https://github.com/pushizo/pushizo-react/issues",
+    "email": "support@pushizo.com"
+  },
+  "keywords": [
+    "pushizo",
+    "react",
+    "nextjs",
+    "push",
+    "notifications",
+    "web-push"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "peerDependencies": {
+    "@pushizo/web": "^0.1.0",
+    "react": ">=18"
+  },
+  "devDependencies": {
+    "@pushizo/web": "^0.1.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "happy-dom": "^21.0.4",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "sideEffects": false
+}
