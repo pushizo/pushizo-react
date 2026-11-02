@@ -13,17 +13,6 @@
 
 **Pushizo for React** — React bindings for the Pushizo Web SDK. PushizoProvider initializes the shared SDK once in the browser (SSR safe, no double init under StrictMode); usePushizo returns the SDK, and hooks expose the notification permission and push subscription state from the SDK observers. React 18 and 19, Next.js App Router ready.
 
-> **Status:** @pushizo/react 0.1.0 is not on npm yet; until then you can install the release archive from this repository.<br>
-> **Durum:** @pushizo/react 0.1.0 henüz npm'de değil; o zamana kadar bu deponun sürüm arşivinden kurabilirsiniz.
-
-**Install from GitHub until then · O zamana kadar GitHub'dan kurulum:**
-
-```bash
-npm install @pushizo/web --allow-remote=root https://github.com/pushizo/pushizo-react/releases/download/v0.1.0/pushizo-react-0.1.0.tgz
-```
-
-**After publication · Yayından sonra:**
-
 ```bash
 npm install @pushizo/react @pushizo/web
 ```
