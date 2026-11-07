@@ -1,6 +1,6 @@
 {
   "name": "@pushizo/react",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Pushizo React bağlamaları: PushizoProvider, usePushizo ve izin/abonelik durum hook'ları (@pushizo/web üzerine)",
   "license": "MIT",
   "homepage": "https://docs.pushizo.com/docs/integrations/react",
@@ -45,11 +45,11 @@
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
   },
   "peerDependencies": {
-    "@pushizo/web": "^0.1.0",
+    "@pushizo/web": "^0.2.0",
     "react": ">=18"
   },
   "devDependencies": {
-    "@pushizo/web": "^0.1.0",
+    "@pushizo/web": "^0.2.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "happy-dom": "^21.0.4",
