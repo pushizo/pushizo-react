@@ -101,6 +101,12 @@ useNotificationClick(({ notification, result }) => {
 | `useNotificationPermission()` | Tarayıcı bildirim izni. |
 | `usePushSubscription()` | Push abonelik durumu. |
 | `useNotificationClick(handler)` | Bildirim tıklaması dinleyicisi; sökülünce kaldırılır. |
+| `useNotificationForeground(handler)` | Ön plan bildirimi dinleyicisi (`event.preventDefault()`); sökülünce `removeForegroundLifecycleListener` ile kaldırılır. |
+| `useFeatureFlag(key, defaultValue?)` | Özellik bayrağı açık mı; bayraklar yenilenince yeniden çizer, gözlemci sökülünce `FeatureFlags.removeObserver` ile temizlenir. |
+| `useFeatureFlagValue(key, defaultValue?)` | Bayrağın değeri (metin, sayı, mantıksal). |
+| `useInboxUnreadCount()` | Bildirim kutusu okunmamış sayısı (`Inbox.addObserver`); bilinmiyorsa `null`. |
+| `<PushizoContentCards options className style onError>` | Hazır içerik kartı akışı (`ContentCards.render`); sökülünce görünüm kaldırılır. |
+| `usePushizoSearch()` | Site araması durumu: `{ response, loading, error, search, trackClick, reset }` (`Search.query`). |
 
 `init` hatası (ör. eksik `appId`) fırlatılmaz, `usePushizoState().error` alanına yazılır. Hook'lar provider dışında
 açıklayıcı bir hata verir. SDK'nın tüm yüzeyi için [Web SDK rehberi](https://docs.pushizo.com/docs/sdk/web).

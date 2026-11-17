@@ -5,15 +5,22 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as web from '@pushizo/web';
 import { getBinding, resetBinding } from '../binding.js';
 import {
+  PushizoContentCards,
   PushizoProvider,
+  useFeatureFlag,
+  useFeatureFlagValue,
+  useInboxUnreadCount,
   useNotificationClick,
+  useNotificationForeground,
   useNotificationPermission,
   usePushizo,
+  usePushizoSearch,
   usePushizoState,
   usePushSubscription,
+  type PushizoSearchState,
   type PushizoState,
 } from '../index.js';
-import { CLICK, type FakeSdk } from './fake-sdk.js';
+import { CLICK, FOREGROUND, searchResponse, type FakeSdk } from './fake-sdk.js';
 
 vi.mock('@pushizo/web', async () => {
   const { createFakeSdk } = await import('./fake-sdk.js');
@@ -173,5 +180,134 @@ describe('@pushizo/react', () => {
     const boom = createRoot(document.createElement('div'));
     expect(() => act(() => boom.render(createElement(Sdk)))).toThrow('PushizoProvider');
     errors.mockRestore();
+  });
+
+  it('ön plan dinleyicisi sökülünce removeForegroundLifecycleListener ile kaldırılır', async () => {
+    const onForeground = vi.fn();
+    function Foreground() {
+      useNotificationForeground(onForeground);
+      return null;
+    }
+    await render(createElement(PushizoProvider, { options: OPTIONS }, createElement(Foreground)));
+    expect(fake.extraCounts().foreground).toBe(1);
+    fake.foreground(FOREGROUND);
+    expect(onForeground).toHaveBeenCalledWith(FOREGROUND);
+    await act(async () => root.render(null));
+    expect(fake.extraCounts().foreground).toBe(0);
+    expect(fake.sdk.Notifications.removeForegroundLifecycleListener).toHaveBeenCalledTimes(1);
+  });
+
+  it('useFeatureFlag bayrak yenilenince yeniden çizer; gözlemci removeObserver ile temizlenir', async () => {
+    function Flags() {
+      const enabled = useFeatureFlag('new_checkout');
+      const limit = useFeatureFlagValue<number>('limit', 5);
+      return createElement('span', null, `${enabled}:${limit}`);
+    }
+    await render(createElement(PushizoProvider, { options: OPTIONS }, createElement(Flags)));
+    expect(container.textContent).toBe('false:5');
+    expect(fake.extraCounts().flags).toBe(2);
+    await act(async () =>
+      fake.setFlags({ new_checkout: { enabled: true }, limit: { enabled: true, value: 20 } }),
+    );
+    expect(container.textContent).toBe('true:20');
+    await act(async () => root.render(null));
+    expect(fake.extraCounts().flags).toBe(0);
+    expect(fake.sdk.FeatureFlags.removeObserver).toHaveBeenCalledTimes(2);
+  });
+
+  it('useInboxUnreadCount ilk değeri okur, kutu olaylarıyla güncellenir ve gözlemciyi kaldırır', async () => {
+    fake.setUnread(3);
+    function Badge() {
+      const count = useInboxUnreadCount();
+      return createElement('span', null, String(count));
+    }
+    await render(createElement(PushizoProvider, { options: OPTIONS }, createElement(Badge)));
+    expect(container.textContent).toBe('3');
+    expect(fake.sdk.Inbox.unreadCount).toHaveBeenCalledTimes(1);
+    await act(async () => fake.inbox({ type: 'read', itemId: 'in_1', unreadCount: 2 }));
+    expect(container.textContent).toBe('2');
+    await act(async () => root.render(null));
+    expect(fake.extraCounts().inbox).toBe(0);
+  });
+
+  it('PushizoContentCards hazır olunca görünümü kurar, sökülünce kaldırır (StrictMode dahil)', async () => {
+    const options = { theme: 'dark' as const };
+    await render(
+      createElement(
+        StrictMode,
+        null,
+        createElement(
+          PushizoProvider,
+          { options: OPTIONS },
+          createElement(PushizoContentCards, { options, className: 'cards' }),
+        ),
+      ),
+    );
+    const host = container.querySelector('div.cards');
+    expect(host).not.toBeNull();
+    expect(fake.sdk.ContentCards.render).toHaveBeenLastCalledWith(host, options);
+    expect(fake.extraCounts().cardViews).toBe(1);
+    await act(async () => root.render(null));
+    expect(fake.extraCounts().cardViews).toBe(0);
+  });
+
+  it('PushizoContentCards kurulum hatasını onError ile bildirir', async () => {
+    fake.sdk.ContentCards.render.mockRejectedValueOnce(new Error('betik yüklenemedi'));
+    const onError = vi.fn();
+    await render(
+      createElement(
+        PushizoProvider,
+        { options: OPTIONS },
+        createElement(PushizoContentCards, { onError }),
+      ),
+    );
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect((onError.mock.calls[0]![0] as Error).message).toBe('betik yüklenemedi');
+  });
+
+  it('usePushizoSearch yanıtı, hatayı ve tıklama kaydını yönetir; eski yanıt yenisinin üzerine yazmaz', async () => {
+    let api!: PushizoSearchState;
+    function Search() {
+      api = usePushizoSearch();
+      return createElement('span', null, `${api.loading}:${api.response?.query_id ?? '-'}`);
+    }
+    await render(createElement(PushizoProvider, { options: OPTIONS }, createElement(Search)));
+    api.trackClick('https://example.test/doc');
+    expect(fake.sdk.Search.trackClick).not.toHaveBeenCalled();
+
+    await act(async () => api.search('fiyat', { limit: 3 }));
+    expect(fake.sdk.Search.query).toHaveBeenCalledWith('fiyat', { limit: 3 });
+    expect(container.textContent).toBe('false:q_fiyat');
+    api.trackClick('https://example.test/doc', 1);
+    expect(fake.sdk.Search.trackClick).toHaveBeenCalledWith(
+      'q_fiyat',
+      'https://example.test/doc',
+      1,
+    );
+
+    // Yavaş ilk arama, hızlı ikinci aramadan sonra dönse de yok sayılır.
+    let releaseSlow!: () => void;
+    fake.searchWith((text) =>
+      text === 'yavaş'
+        ? new Promise((resolve) => {
+            releaseSlow = () => resolve(searchResponse(text));
+          })
+        : Promise.resolve(searchResponse(text)),
+    );
+    await act(async () => {
+      void api.search('yavaş');
+      await api.search('hızlı');
+      releaseSlow();
+    });
+    expect(container.textContent).toBe('false:q_hızlı');
+
+    fake.searchWith(() => Promise.reject(new Error('arama kapalı')));
+    await act(async () => api.search('hata'));
+    expect(api.error?.message).toBe('arama kapalı');
+    expect(api.loading).toBe(false);
+
+    await act(async () => api.search('  '));
+    expect(api.response).toBeNull();
+    expect(api.error).toBeNull();
   });
 });
